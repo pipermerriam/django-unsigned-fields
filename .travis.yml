@@ -1,0 +1,43 @@
+# Config file for automatic testing at travis-ci.org
+language: python
+python:
+  - "2.7"
+  - "2.6"
+env:
+  matrix:
+    - DATABASE_ENGINE='django.db.backends.sqlite3' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.4.x.zip
+    - DATABASE_ENGINE='django.db.backends.postgresql_psycopg2' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.4.x.zip
+    - DATABASE_ENGINE='django.db.backends.mysql' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.4.x.zip
+    - DATABASE_ENGINE='django.db.backends.sqlite3' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.5.x.zip
+    - DATABASE_ENGINE='django.db.backends.postgresql_psycopg2' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.5.x.zip
+    - DATABASE_ENGINE='django.db.backends.mysql' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.5.x.zip
+    - DATABASE_ENGINE='django.db.backends.sqlite3' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.6.x.zip
+    - DATABASE_ENGINE='django.db.backends.postgresql_psycopg2' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.6.x.zip
+    - DATABASE_ENGINE='django.db.backends.mysql' DJANGO_PACKAGE=https://github.com/django/django/archive/stable/1.6.x.zip
+    - DATABASE_ENGINE='django.db.backends.sqlite3' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+    - DATABASE_ENGINE='django.db.backends.postgresql_psycopg2' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+    - DATABASE_ENGINE='django.db.backends.mysql' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+matrix:
+  exclude:
+    # py26-dj17
+    - python: "2.6"
+      env: DATABASE_ENGINE='django.db.backends.sqlite3' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+    - python: "2.6"
+      env: DATABASE_ENGINE='django.db.backends.postgresql_psycopg2' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+    - python: "2.6"
+      env: DATABASE_ENGINE='django.db.backends.mysql' DJANGO_PACKAGE=https://github.com/django/django/archive/1.7c2.zip
+
+# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+install:
+  - touch db_requirements.txt
+  - ./travis_setup.sh
+  - cat db_requirements.txt
+  - pip install $DJANGO_PACKAGE
+  - pip install -r db_requirements.txt
+  - pip install -r requirements-test.txt
+
+# command to run tests using coverage, e.g. python setup.py test
+script: coverage run --source django_unsigned_fields runtests.py
+
+# report coverage to coveralls.io
+after_success: coveralls
