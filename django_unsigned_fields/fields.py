@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.core import exceptions
-from django.db import connection
+from django.db import connection as default_connection
 from django.db.models import fields
 from django.db.models.fields.related import (
     OneToOneField,
@@ -108,6 +108,7 @@ class UnsignedManyToManyField(ManyToManyField):
 
 class UnsignedIntegerField(fields.IntegerField):
     def db_type(self, connection=None):
+        connection = connection or default_connection
         if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
             return "integer UNSIGNED"
         if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
@@ -132,6 +133,7 @@ class UnsignedIntegerField(fields.IntegerField):
 
 class UnsignedAutoField(fields.AutoField):
     def db_type(self, connection=None):
+        connection = connection or default_connection
         if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
             return "integer UNSIGNED AUTO_INCREMENT"
         if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
@@ -156,6 +158,7 @@ class UnsignedAutoField(fields.AutoField):
 
 class UnsignedForeignKey(fields.related.ForeignKey):
     def db_type(self, connection=None):
+        connection = connection or default_connection
         rel_field = self.rel.get_related_field()
         # next lines are the "bad tooth" in the original code:
         if (isinstance(rel_field, UnsignedAutoField) or
@@ -186,10 +189,25 @@ class UnsignedOneToOneField(UnsignedForeignKey, OneToOneField):
 
 try:
     from south.modelsinspector import add_introspection_rules
-    add_introspection_rules(rules=[], patterns=[r'^se\.core.fields\.UnsignedIntegerField$'])
-    add_introspection_rules(rules=[], patterns=[r'^se\.core.fields\.UnsignedAutoField$'])
-    add_introspection_rules(rules=[], patterns=[r'^se\.core.fields\.UnsignedForeignKey$'])
-    add_introspection_rules(rules=[], patterns=[r'^se\.core.fields\.UnsignedOneToOneField$'])
-    add_introspection_rules(rules=[], patterns=[r'^se\.core.fields\.UnsignedManyToManyField$'])
+    add_introspection_rules(
+        rules=[],
+        patterns=[r'^django_unsigned_fields\.fields\.UnsignedIntegerField$'],
+    )
+    add_introspection_rules(
+        rules=[],
+        patterns=[r'^django_unsigned_fields\.fields\.UnsignedAutoField$'],
+    )
+    add_introspection_rules(
+        rules=[],
+        patterns=[r'^django_unsigned_fields\.fields\.UnsignedForeignKey$'],
+    )
+    add_introspection_rules(
+        rules=[],
+        patterns=[r'^django_unsigned_fields\.fields\.UnsignedOneToOneField$'],
+    )
+    add_introspection_rules(
+        rules=[],
+        patterns=[r'^django_unsigned_fields\.fields\.UnsignedManyToManyField$'],
+    )
 except ImportError:
     pass
