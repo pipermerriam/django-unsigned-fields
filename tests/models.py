@@ -28,12 +28,3 @@ class SourceModel(models.Model):
 class OneToOneModel(models.Model):
     id = UnsignedAutoField(primary_key=True)
     source = UnsignedOneToOneField(SourceModel)
-
-
-class NormalModel(models.Model):
-    rel = UnsignedManyToManyField(TargetModel)
-
-
-class ManyToManyToNormalModel(models.Model)
-    id = UnsignedAutoField(primary_key=True)
-    rel = UnsignedManyToManyField(NormalModel)

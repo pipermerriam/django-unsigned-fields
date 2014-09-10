@@ -2,6 +2,7 @@ import os
 import sys
 
 from django.conf import settings
+
 if os.environ.get('TRAVIS'):
     if os.environ.get('DATABASE_ENGINE') == 'django.db.backends.postgresql_psycopg2':
         os.environ.setdefault('DATABASE_USER', 'postgres')
@@ -9,19 +10,17 @@ if os.environ.get('TRAVIS'):
         os.environ.setdefault('DATABASE_USER', 'root')
     os.environ.setdefault('DATABASE_USER', 'test_db')
 
-    DATABASES = {
-        "default": {
-            'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.sqlite3'),
-            'NAME': os.environ.get('DATABASE_NAME', 'test_db'),
-            'USER': os.environ.get('DATABASE_USER', 'root'),
-            'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
-            'HOST': os.environ.get('DATABASE_HOST', ''),
-            'PORT': os.environ.get('DATABASE_PORT', ''),
-        }
+DATABASES = {
+    "default": {
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('DATABASE_NAME', 'test_db'),
+        'USER': os.environ.get('DATABASE_USER', 'root'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+        'HOST': os.environ.get('DATABASE_HOST', ''),
+        'PORT': os.environ.get('DATABASE_PORT', ''),
     }
+}
 
-    if os.environ.get('DATABASE_ENGINE') == 'django.db.backends.mysql':
-        DATABASES['default']['OPTIONS'] = {"init_command": "SET storage_engine=MyISAM"}
 
 settings.configure(
     DEBUG=True,
@@ -32,9 +31,11 @@ settings.configure(
         "django.contrib.contenttypes",
         "django_unsigned_fields",
         "tests",
+        "tests_with_migrations",
     ],
     SITE_ID=1,
     NOSE_ARGS=['-s'],
+    MIDDLEWARE_CLASSES=[],
 )
 
 try:

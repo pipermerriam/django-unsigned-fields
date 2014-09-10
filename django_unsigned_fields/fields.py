@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import django
 from django.conf import settings
 from django.core import exceptions
 from django.db import connection as default_connection
@@ -14,7 +15,9 @@ from django.db.models.fields.related import (
 from django.utils.translation import ugettext as _
 from django.utils.functional import curry
 
-from django_unsigned_fields.compat import six
+from django_unsigned_fields.compat import (
+    six, create_many_to_many_intermediary_model,
+)
 
 KILOBYTES = 1024
 MEGABYTES = 1024 * KILOBYTES
@@ -23,56 +26,12 @@ GIGABYTES = 1024 * MEGABYTES
 REWARDS_IMAGE_MAX_UPLOAD_SIZE = 5 * MEGABYTES
 
 
-def create_many_to_many_intermediary_model(field, klass):
-    """
-    This function is a large copy/paste from django in order to construct
-    correct through tables for `ManyToManyField` relationships.
-    """
-    from django.db import models
-    managed = True
-    if isinstance(field.rel.to, six.string_types) and field.rel.to != RECURSIVE_RELATIONSHIP_CONSTANT:
-        to_model = field.rel.to
-        to = to_model.split('.')[-1]
-
-        def set_managed(field, model, cls):
-            field.rel.through._meta.managed = model._meta.managed or cls._meta.managed
-        add_lazy_relation(klass, field, to_model, set_managed)
-    elif isinstance(field.rel.to, six.string_types):
-        to = klass._meta.object_name
-        to_model = klass
-        managed = klass._meta.managed
-    else:
-        to = field.rel.to._meta.object_name
-        to_model = field.rel.to
-        managed = klass._meta.managed or to_model._meta.managed
-    name = '%s_%s' % (klass._meta.object_name, field.name)
-    if field.rel.to == RECURSIVE_RELATIONSHIP_CONSTANT or to == klass._meta.object_name:
-        from_ = 'from_%s' % to.lower()
-        to = 'to_%s' % to.lower()
-    else:
-        from_ = klass._meta.model_name
-        to = to.lower()
-    meta = type(str('Meta'), (object,), {
-        'db_table': field._get_m2m_db_table(klass._meta),
-        'managed': managed,
-        'auto_created': klass,
-        'app_label': klass._meta.app_label,
-        'db_tablespace': klass._meta.db_tablespace,
-        'unique_together': (from_, to),
-        'verbose_name': '%(from)s-%(to)s relationship' % {'from': from_, 'to': to},
-        'verbose_name_plural': '%(from)s-%(to)s relationships' % {'from': from_, 'to': to},
-        'apps': field.model._meta.apps,
-    })
-    # Construct and return the new class.
-    return type(str(name), (models.Model,), {
-        'Meta': meta,
-        '__module__': klass.__module__,
-        from_: models.UnsignedForeignKey(klass, related_name='%s+' % name, db_tablespace=field.db_tablespace, db_constraint=field.rel.db_constraint),
-        to: models.UnsignedForeignKey(to_model, related_name='%s+' % name, db_tablespace=field.db_tablespace, db_constraint=field.rel.db_constraint)
-    })
-
-
 class UnsignedManyToManyField(ManyToManyField):
+    def __init__(self, *args, **kwargs):
+        self.from_unsigned = kwargs.pop('from_unsigned', True)
+        self.to_unsigned = kwargs.pop('to_unsigned', True)
+        super(UnsignedManyToManyField, self).__init__(*args, **kwargs)
+
     def contribute_to_class(self, cls, name):
         # To support multiple relations to self, it's useful to have a non-None
         # related name on symmetrical relations for internal reasons. The
@@ -83,13 +42,13 @@ class UnsignedManyToManyField(ManyToManyField):
         if self.rel.symmetrical and (self.rel.to == "self" or self.rel.to == cls._meta.object_name):
             self.rel.related_name = "%s_rel_+" % name
 
-        super(UnsignedManyToManyField, self).contribute_to_class(cls, name)
+        super(ManyToManyField, self).contribute_to_class(cls, name)
 
         # The intermediate m2m model is not auto created if:
         #  1) There is a manually specified intermediate, or
         #  2) The class owning the m2m field is abstract.
         #  3) The class owning the m2m field has been swapped out.
-        if not self.rel.through and not cls._meta.abstract and not cls._meta.swapped:
+        if not self.rel.through and not cls._meta.abstract and not getattr(cls._meta, 'swapped', False):
             self.rel.through = create_many_to_many_intermediary_model(self, cls)
 
         # Add the descriptor for the m2m relation
@@ -104,6 +63,12 @@ class UnsignedManyToManyField(ManyToManyField):
             def resolve_through_model(field, model, cls):
                 field.rel.through = model
             add_lazy_relation(cls, self, self.rel.through, resolve_through_model)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super(UnsignedManyToManyField, self).deconstruct()
+        kwargs['to_unsigned'] = self.to_unsigned
+        kwargs['from_unsigned'] = self.from_unsigned
+        return name, path, args, kwargs
 
 
 class UnsignedIntegerField(fields.IntegerField):
