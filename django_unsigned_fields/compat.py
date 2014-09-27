@@ -67,6 +67,7 @@ elif django.VERSION[1] == 6:
         from django.db import models
         from django_unsigned_fields.fields import UnsignedForeignKey
         from django.db.models.fields.related import (
+            add_lazy_relation,
             RECURSIVE_RELATIONSHIP_CONSTANT,
         )
         managed = True
@@ -116,6 +117,7 @@ elif django.VERSION[1] <= 5:
         from django.db import models
         from django_unsigned_fields.fields import UnsignedForeignKey
         from django.db.models.fields.related import (
+            add_lazy_relation,
             RECURSIVE_RELATIONSHIP_CONSTANT,
         )
         managed = True
